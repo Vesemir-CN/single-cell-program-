@@ -1,0 +1,2098 @@
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>小乐单细胞 - 单细胞分析方案生成</title>
+    <style>
+      :root{
+        --bg:#020408;
+        --panel:#0a1120;
+        --panel2:#060d18;
+        --text:#ffffff;
+        --text-secondary:#a0aec0;
+        --text-muted:#64748b;
+        --border:rgba(0,212,255,.15);
+        --accent:#00d4ff;
+        --accent-glow:rgba(0,212,255,.4);
+        --accent2:#00ffc8;
+        --warn:#fbbf24;
+        --danger:#f87171;
+        --ok:#34d399;
+        --shadow: 0 0 60px rgba(0,0,0,.8);
+        --radius: 16px;
+        --radius-sm: 10px;
+        --glow: 0 0 30px rgba(0,212,255,.15);
+        --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        --sans: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      }
+      
+      *{box-sizing:border-box;margin:0;padding:0}
+      html,body{height:100%}
+      
+      body{
+        font-family:var(--sans);
+        background:var(--bg);
+        color:var(--text);
+        min-height:100vh;
+        line-height:1.6;
+        overflow-x:hidden;
+      }
+      
+      /* 科技感背景 */
+      body::before{
+        content:"";
+        position:fixed;
+        inset:0;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,212,255,.15), transparent),
+          radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,255,200,.08), transparent),
+          radial-gradient(ellipse 50% 30% at 20% 100%, rgba(100,150,255,.06), transparent);
+        pointer-events:none;
+        z-index:0;
+      }
+      
+      /* 网格线背景 */
+      .grid-bg{
+        position:fixed;
+        inset:0;
+        background-image:
+          linear-gradient(rgba(0,212,255,.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,212,255,.03) 1px, transparent 1px);
+        background-size:50px 50px;
+        pointer-events:none;
+        z-index:0;
+      }
+      
+      .container{
+        max-width:1400px;
+        margin:0 auto;
+        padding:24px;
+        position:relative;
+        z-index:1;
+        display:grid;
+        grid-template-rows:auto 1fr;
+        gap:20px;
+        min-height:100vh;
+      }
+      
+      /* 移动端适配 */
+      @media (max-width:768px){
+        .container{padding:12px;gap:16px}
+        .header{flex-direction:column;gap:16px;padding:16px 20px;text-align:center}
+        .brand{flex-direction:column;gap:12px}
+        .brand-icon{width:40px;height:40px;font-size:20px}
+        .brand-text h1{font-size:20px}
+        .panel-header{padding:16px 20px}
+        .panel-body{padding:16px 20px}
+        .form-row{grid-template-columns:1fr;gap:12px}
+        .chips{gap:8px}
+        .chip{padding:10px 14px}
+        .btn-group{flex-direction:column;gap:10px}
+        .btn{width:100%;justify-content:center}
+        .card-header{padding:16px 20px}
+        .card-title{font-size:16px}
+        .card-desc{font-size:12px}
+        .card-content{padding:16px 20px}
+        .plan-section-title{font-size:14px}
+        .plan-list li{font-size:13px}
+        .footer-note{padding:16px 20px;font-size:12px}
+      }
+      
+      @media (max-width:1200px){
+        .container{padding:16px}
+        .form-row{grid-template-columns:repeat(2,1fr)}
+      }
+      
+      /* Header */
+      .header{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:20px 28px;
+        background:linear-gradient(135deg, rgba(10,17,32,.9), rgba(6,13,24,.95));
+        border:1px solid var(--border);
+        border-radius:var(--radius);
+        backdrop-filter:blur(20px);
+        box-shadow:var(--glow), var(--shadow);
+      }
+      
+      .brand{
+        display:flex;
+        align-items:center;
+        gap:16px;
+      }
+      
+      .brand-icon{
+        width:48px;
+        height:48px;
+        background:linear-gradient(135deg, var(--accent), var(--accent2));
+        border-radius:12px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:24px;
+        box-shadow:0 0 20px rgba(0,212,255,.3);
+      }
+      
+      .brand-text h1{
+        font-size:24px;
+        font-weight:700;
+        background:linear-gradient(90deg, #fff 0%, var(--accent) 50%, var(--accent2) 100%);
+        -webkit-background-clip:text;
+        -webkit-text-fill-color:transparent;
+        background-clip:text;
+        letter-spacing:-0.5px;
+      }
+      
+      .brand-name{
+        font-size:14px;
+        font-weight:600;
+        color:var(--accent);
+        margin-bottom:2px;
+        display:flex;
+        align-items:center;
+        gap:6px;
+      }
+      
+      .brand-name::before{
+        content:"✦";
+        color:var(--accent2);
+      }
+      
+      .brand-text p{
+        font-size:12px;
+        color:var(--text-secondary);
+      }
+      
+      .header-badge{
+        display:flex;
+        align-items:center;
+        gap:8px;
+        padding:10px 18px;
+        background:rgba(0,212,255,.08);
+        border:1px solid rgba(0,212,255,.25);
+        border-radius:999px;
+        font-size:13px;
+        color:var(--accent);
+        font-weight:500;
+      }
+      
+      .header-badge::before{
+        content:"";
+        width:8px;
+        height:8px;
+        background:var(--accent);
+        border-radius:50%;
+        box-shadow:0 0 10px var(--accent);
+        animation:pulse 2s ease-in-out infinite;
+      }
+      
+      @keyframes pulse{
+        0%,100%{opacity:1;transform:scale(1)}
+        50%{opacity:.6;transform:scale(.9)}
+      }
+      
+      /* Main Layout - 上下布局 */
+      .main{
+        display:flex;
+        flex-direction:column;
+        gap:24px;
+      }
+      
+      @media (max-width:1200px){
+        .container{padding:20px}
+      }
+      
+      /* Panel */
+      .panel{
+        background:linear-gradient(180deg, rgba(10,17,32,.95), rgba(6,13,24,.98));
+        border:1px solid var(--border);
+        border-radius:var(--radius);
+        backdrop-filter:blur(20px);
+        overflow:hidden;
+        box-shadow:var(--shadow);
+      }
+      
+      .panel-header{
+        padding:20px 24px;
+        border-bottom:1px solid var(--border);
+        background:rgba(0,0,0,.3);
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+      }
+      
+      .panel-title{
+        font-size:16px;
+        font-weight:600;
+        color:var(--text);
+        display:flex;
+        align-items:center;
+        gap:10px;
+      }
+      
+      .panel-title::before{
+        content:"";
+        width:4px;
+        height:20px;
+        background:linear-gradient(180deg, var(--accent), var(--accent2));
+        border-radius:2px;
+      }
+      
+      .panel-body{
+        padding:24px;
+      }
+      
+      /* Form Elements */
+      .form-group{
+        margin-bottom:20px;
+      }
+      
+      .form-row{
+        display:grid;
+        grid-template-columns:repeat(4, 1fr);
+        gap:16px;
+      }
+      
+      @media (max-width:1200px){
+        .form-row{grid-template-columns:repeat(2, 1fr)}
+      }
+      
+      @media (max-width:600px){
+        .form-row{grid-template-columns:1fr}
+      }
+      
+      /* 输入面板网格布局 */
+      .input-grid{
+        display:grid;
+        grid-template-columns:2fr 1fr 1fr;
+        gap:16px;
+      }
+      
+      @media (max-width:1000px){
+        .input-grid{grid-template-columns:1fr 1fr}
+      }
+      
+      @media (max-width:600px){
+        .input-grid{grid-template-columns:1fr}
+      }
+      
+      label{
+        display:block;
+        font-size:13px;
+        font-weight:500;
+        color:var(--text-secondary);
+        margin-bottom:8px;
+      }
+      
+      label .required{
+        color:var(--warn);
+        margin-left:4px;
+      }
+      
+      input, select, textarea{
+        width:100%;
+        padding:12px 16px;
+        font-size:14px;
+        color:var(--text);
+        background:rgba(0,0,0,.4);
+        border:1px solid rgba(100,116,139,.3);
+        border-radius:var(--radius-sm);
+        outline:none;
+        transition:all .2s ease;
+        font-family:var(--sans);
+      }
+      
+      input:focus, select:focus, textarea:focus{
+        border-color:var(--accent);
+        box-shadow:0 0 0 3px rgba(0,212,255,.1), 0 0 20px rgba(0,212,255,.1);
+      }
+      
+      textarea{
+        min-height:100px;
+        resize:vertical;
+        line-height:1.6;
+      }
+      
+      select{
+        cursor:pointer;
+        appearance:none;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a0aec0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-repeat:no-repeat;
+        background-position:right 16px center;
+        padding-right:40px;
+      }
+      
+      .hint{
+        font-size:12px;
+        color:var(--text-muted);
+        margin-top:6px;
+        line-height:1.5;
+      }
+      
+      /* Chips */
+      .chips{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+      }
+      
+      .chip{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:12px 16px;
+        background:rgba(0,212,255,.05);
+        border:1px solid rgba(0,212,255,.15);
+        border-radius:var(--radius-sm);
+        cursor:pointer;
+        transition:all .2s ease;
+      }
+      
+      .chip:hover{
+        background:rgba(0,212,255,.1);
+        border-color:rgba(0,212,255,.3);
+        transform:translateY(-1px);
+      }
+      
+      .chip input[type="checkbox"]{
+        width:auto;
+        margin:0;
+        accent-color:var(--accent);
+      }
+      
+      .chip-text{
+        display:flex;
+        flex-direction:column;
+        gap:2px;
+      }
+      
+      .chip-title{
+        font-size:13px;
+        font-weight:600;
+        color:var(--text);
+      }
+      
+      .chip-desc{
+        font-size:11px;
+        color:var(--text-muted);
+      }
+      
+      /* LLM Section */
+      .llm-box{
+        margin-top:20px;
+        padding:20px;
+        background:rgba(0,0,0,.3);
+        border:1px solid rgba(100,116,139,.2);
+        border-radius:var(--radius-sm);
+      }
+      
+      .llm-header{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        margin-bottom:16px;
+      }
+      
+      .llm-title{
+        font-size:14px;
+        font-weight:600;
+        color:var(--text);
+      }
+      
+      /* Toggle Switch */
+      .toggle{
+        display:flex;
+        align-items:center;
+        gap:12px;
+        cursor:pointer;
+      }
+      
+      .toggle input{
+        display:none;
+      }
+      
+      .toggle-slider{
+        width:44px;
+        height:24px;
+        background:rgba(100,116,139,.3);
+        border-radius:12px;
+        position:relative;
+        transition:all .3s ease;
+      }
+      
+      .toggle-slider::after{
+        content:"";
+        position:absolute;
+        top:2px;
+        left:2px;
+        width:20px;
+        height:20px;
+        background:#fff;
+        border-radius:50%;
+        transition:all .3s ease;
+        box-shadow:0 2px 4px rgba(0,0,0,.2);
+      }
+      
+      .toggle input:checked + .toggle-slider{
+        background:var(--accent);
+        box-shadow:0 0 10px rgba(0,212,255,.3);
+      }
+      
+      .toggle input:checked + .toggle-slider::after{
+        left:22px;
+      }
+      
+      .toggle-text{
+        font-size:13px;
+        color:var(--text-secondary);
+      }
+      
+      /* Buttons */
+      .btn-group{
+        display:flex;
+        gap:12px;
+        margin-top:24px;
+        flex-wrap:wrap;
+      }
+      
+      .btn{
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        padding:12px 24px;
+        font-size:14px;
+        font-weight:600;
+        color:var(--text);
+        background:rgba(255,255,255,.05);
+        border:1px solid rgba(100,116,139,.3);
+        border-radius:var(--radius-sm);
+        cursor:pointer;
+        transition:all .2s ease;
+        font-family:var(--sans);
+      }
+      
+      .btn:hover{
+        background:rgba(255,255,255,.1);
+        border-color:rgba(255,255,255,.2);
+        transform:translateY(-2px);
+      }
+      
+      .btn-primary{
+        background:linear-gradient(135deg, rgba(0,212,255,.2), rgba(0,255,200,.1));
+        border-color:var(--accent);
+        color:var(--accent);
+        box-shadow:0 0 20px rgba(0,212,255,.15);
+      }
+      
+      .btn-primary:hover{
+        background:linear-gradient(135deg, rgba(0,212,255,.3), rgba(0,255,200,.2));
+        box-shadow:0 0 30px rgba(0,212,255,.25);
+      }
+      
+      .btn-danger{
+        background:rgba(248,113,113,.1);
+        border-color:rgba(248,113,113,.3);
+        color:var(--danger);
+      }
+      
+      .btn-danger:hover{
+        background:rgba(248,113,113,.2);
+      }
+      
+      .btn-sm{
+        padding:8px 16px;
+        font-size:13px;
+      }
+      
+      /* Alert */
+      .alert{
+        margin-top:20px;
+        padding:16px 20px;
+        border-radius:var(--radius-sm);
+        font-size:13px;
+        line-height:1.6;
+        display:none;
+      }
+      
+      .alert-success{
+        background:rgba(52,211,153,.1);
+        border:1px solid rgba(52,211,153,.3);
+        color:var(--ok);
+      }
+      
+      .alert-warning{
+        background:rgba(251,191,36,.1);
+        border:1px solid rgba(251,191,36,.3);
+        color:var(--warn);
+      }
+      
+      .alert-error{
+        background:rgba(248,113,113,.1);
+        border:1px solid rgba(248,113,113,.3);
+        color:var(--danger);
+      }
+      
+      /* Output Section */
+      .output-header{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        margin-bottom:20px;
+      }
+      
+      .output-title{
+        font-size:18px;
+        font-weight:700;
+        color:var(--text);
+      }
+      
+      .output-subtitle{
+        font-size:13px;
+        color:var(--text-muted);
+      }
+      
+      /* Cards */
+      .cards{
+        display:flex;
+        flex-direction:column;
+        gap:16px;
+      }
+      
+      .card{
+        background:linear-gradient(135deg, rgba(10,17,32,.9), rgba(6,13,24,.95));
+        border:1px solid var(--border);
+        border-radius:var(--radius);
+        overflow:hidden;
+        transition:all .3s ease;
+      }
+      
+      .card:hover{
+        border-color:rgba(0,212,255,.3);
+        box-shadow:0 0 40px rgba(0,212,255,.1);
+      }
+      
+      .card-header{
+        padding:20px 24px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        cursor:pointer;
+        background:rgba(0,0,0,.2);
+        transition:all .2s ease;
+      }
+      
+      .card-header:hover{
+        background:rgba(0,212,255,.05);
+      }
+      
+      .card-info{
+        display:flex;
+        align-items:center;
+        gap:16px;
+      }
+      
+      .card-badge{
+        padding:8px 16px;
+        font-size:13px;
+        font-weight:700;
+        border-radius:var(--radius-sm);
+        text-transform:uppercase;
+        letter-spacing:0.5px;
+      }
+      
+      .card-badge-basic{
+        background:rgba(0,212,255,.15);
+        color:var(--accent);
+        border:1px solid rgba(0,212,255,.3);
+      }
+      
+      .card-badge-advanced{
+        background:rgba(0,255,200,.15);
+        color:var(--accent2);
+        border:1px solid rgba(0,255,200,.3);
+      }
+      
+      .card-badge-expert{
+        background:rgba(251,191,36,.15);
+        color:var(--warn);
+        border:1px solid rgba(251,191,36,.3);
+      }
+      
+      .card-title-group{
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+      }
+      
+      .card-title{
+        font-size:18px;
+        font-weight:700;
+        color:var(--text);
+      }
+      
+      .card-desc{
+        font-size:13px;
+        color:var(--text-secondary);
+      }
+      
+      .card-arrow{
+        width:32px;
+        height:32px;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        color:var(--accent);
+        font-size:20px;
+        transition:all .3s ease;
+      }
+      
+      .card-arrow.expanded{
+        transform:rotate(180deg);
+      }
+      
+      .card-body{
+        max-height:0;
+        opacity:0;
+        overflow:hidden;
+        transition:all .4s cubic-bezier(0.4,0,0.2,1);
+      }
+      
+      .card-body.expanded{
+        max-height:3000px;
+        opacity:1;
+      }
+      
+      .card-content{
+        padding:24px;
+        border-top:1px solid var(--border);
+      }
+      
+      .card-footer{
+        display:flex;
+        gap:12px;
+        padding:16px 24px;
+        border-top:1px solid var(--border);
+        background:rgba(0,0,0,.2);
+        opacity:0;
+        max-height:0;
+        overflow:hidden;
+        transition:all .3s ease;
+      }
+      
+      .card-footer.expanded{
+        opacity:1;
+        max-height:100px;
+      }
+      
+      /* Plan Content */
+      .plan-section{
+        margin-bottom:24px;
+      }
+      
+      .plan-section:last-child{
+        margin-bottom:0;
+      }
+      
+      .plan-section-title{
+        font-size:15px;
+        font-weight:700;
+        color:var(--accent);
+        margin-bottom:12px;
+        padding-bottom:8px;
+        border-bottom:1px solid rgba(0,212,255,.2);
+        display:flex;
+        align-items:center;
+        gap:8px;
+      }
+      
+      .plan-section-title::before{
+        content:"";
+        width:6px;
+        height:6px;
+        background:var(--accent);
+        border-radius:50%;
+        box-shadow:0 0 8px var(--accent);
+      }
+      
+      .plan-list{
+        list-style:none;
+        padding:0;
+        margin:0;
+      }
+      
+      .plan-list li{
+        position:relative;
+        padding-left:20px;
+        margin-bottom:10px;
+        font-size:14px;
+        line-height:1.7;
+        color:var(--text-secondary);
+      }
+      
+      .plan-list li::before{
+        content:"›";
+        position:absolute;
+        left:0;
+        color:var(--accent);
+        font-weight:700;
+        font-size:16px;
+      }
+      
+      .plan-text{
+        font-size:14px;
+        line-height:1.8;
+        color:var(--text-secondary);
+        white-space:pre-wrap;
+      }
+      
+      /* Preview State */
+      .preview-state{
+        text-align:center;
+        padding:60px 40px;
+        color:var(--text-muted);
+      }
+      
+      .preview-state-icon{
+        font-size:48px;
+        margin-bottom:16px;
+        opacity:.5;
+      }
+      
+      .preview-state-text{
+        font-size:15px;
+      }
+      
+      /* Footer Note */
+      .footer-note{
+        margin-top:24px;
+        padding:20px 24px;
+        background:rgba(0,0,0,.3);
+        border:1px solid rgba(100,116,139,.2);
+        border-radius:var(--radius-sm);
+        font-size:13px;
+        color:var(--text-muted);
+        line-height:1.7;
+      }
+      
+      .footer-note strong{
+        color:var(--text-secondary);
+      }
+      
+      /* 流程图生成相关样式 */
+      .flowchart-btn{
+        background:linear-gradient(135deg, rgba(251,191,36,.15), rgba(251,191,36,.05));
+        border-color:rgba(251,191,36,.3);
+        color:var(--warn);
+      }
+      
+      .flowchart-btn:hover{
+        background:linear-gradient(135deg, rgba(251,191,36,.25), rgba(251,191,36,.1));
+        box-shadow:0 0 20px rgba(251,191,36,.2);
+      }
+      
+      .flowchart-display{
+        margin-top:20px;
+        padding:20px;
+        background:rgba(0,0,0,.4);
+        border:1px solid var(--border);
+        border-radius:var(--radius-sm);
+        text-align:center;
+      }
+      
+      .flowchart-display img{
+        max-width:100%;
+        border-radius:var(--radius-sm);
+        box-shadow:0 10px 40px rgba(0,0,0,.5);
+      }
+      
+      .flowchart-loading{
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        padding:60px 40px;
+        color:var(--text-secondary);
+      }
+      
+      .flowchart-loading .spinner{
+        width:48px;
+        height:48px;
+        border:3px solid rgba(251,191,36,.2);
+        border-top-color:var(--warn);
+        border-radius:50%;
+        animation:spin 1s linear infinite;
+        margin-bottom:16px;
+      }
+      
+      .flowchart-counter{
+        display:inline-flex;
+        align-items:center;
+        gap:6px;
+        padding:6px 12px;
+        background:rgba(251,191,36,.1);
+        border:1px solid rgba(251,191,36,.2);
+        border-radius:999px;
+        font-size:12px;
+        color:var(--warn);
+        margin-left:auto;
+      }
+      
+      /* Animations */
+      @keyframes fadeIn{
+        from{opacity:0;transform:translateY(10px)}
+        to{opacity:1;transform:translateY(0)}
+      }
+      
+      .animate-in{
+        animation:fadeIn .4s ease forwards;
+      }
+      
+      /* Loading */
+      .loading{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+      }
+      
+      .loading::after{
+        content:"";
+        width:16px;
+        height:16px;
+        border:2px solid rgba(0,212,255,.2);
+        border-top-color:var(--accent);
+        border-radius:50%;
+        animation:spin 1s linear infinite;
+      }
+      
+      @keyframes spin{
+        to{transform:rotate(360deg)}
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grid-bg"></div>
+    
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="brand">
+          <div class="brand-icon">🧬</div>
+          <div class="brand-text">
+            <div class="brand-name">小乐单细胞</div>
+            <h1>单细胞分析方案生成器</h1>
+            <p>智能生成基础 / 进阶 / 专家三档分析方案</p>
+          </div>
+        </div>
+        <div class="header-badge">离线优先 · 数据安全</div>
+      </header>
+      
+      <!-- Main Content -->
+      <main class="main">
+        <!-- Input Panel -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">需求输入</div>
+            <button class="btn btn-sm" id="btnFillExample" type="button">填充示例</button>
+          </div>
+          
+          <div class="panel-body">
+            <!-- 第一行：项目目标（占满整行） -->
+            <div class="form-group">
+              <label>项目目标 / 研究问题 <span class="required">*</span></label>
+              <textarea id="goal" placeholder="例如：比较对照 vs 处理组肿瘤微环境中T细胞耗竭状态差异，并寻找关键调控因子"></textarea>
+            </div>
+            
+            <!-- 第二行：4个下拉选择 -->
+            <div class="form-row">
+              <div class="form-group">
+                <label>物种 <span class="required">*</span></label>
+                <select id="species">
+                  <option value="">请选择</option>
+                  <option value="人">人</option>
+                  <option value="鼠">鼠</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>数据类型 / 平台 <span class="required">*</span></label>
+                <select id="modality">
+                  <option value="">请选择</option>
+                  <option value="10x scRNA">10x scRNA</option>
+                  <option value="Smart-seq">Smart-seq</option>
+                  <option value="scATAC">scATAC</option>
+                  <option value="CITE-seq">CITE-seq</option>
+                  <option value="Multiome">Multiome（RNA+ATAC）</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>数据现状 <span class="required">*</span></label>
+                <select id="dataStatus">
+                  <option value="">请选择</option>
+                  <option value="已有fastq">已有 fastq</option>
+                  <option value="已有count矩阵">已有 count matrix</option>
+                  <option value="已有Seurat/AnnData对象">已有 Seurat/AnnData</option>
+                  <option value="不确定">不确定</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>时间预算 <span class="required">*</span></label>
+                <select id="constraint">
+                  <option value="">请选择</option>
+                  <option value="紧">紧（优先跑通）</option>
+                  <option value="中">中（兼顾稳健）</option>
+                  <option value="宽松">宽松（投稿级深度）</option>
+                </select>
+              </div>
+            </div>
+            
+            <!-- 第三行：样本设计 + 交付形式 + 关注点 + 质控 -->
+            <div class="form-row">
+              <div class="form-group">
+                <label>样本数与分组 <span class="required">*</span></label>
+                <input id="design" type="text" placeholder="例如：对照 n=3，处理 n=3" />
+              </div>
+              <div class="form-group">
+                <label>期望交付形式 <span class="required">*</span></label>
+                <select id="deliverable">
+                  <option value="">请选择</option>
+                  <option value="报告（含图表）">报告（含图表）</option>
+                  <option value="PPT汇报">PPT 汇报</option>
+                  <option value="代码+可复现流程">代码 + 可复现流程</option>
+                  <option value="报告+代码+对象文件">报告 + 代码 + 对象</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>关注细胞类型 / 基因</label>
+                <input id="focus" type="text" placeholder="例如：T细胞; PDCD1, TOX" />
+              </div>
+              <div class="form-group">
+                <label>质控偏好</label>
+                <select id="qcBias">
+                  <option value="">默认（标准）</option>
+                  <option value="严格">严格</option>
+                  <option value="标准">标准</option>
+                  <option value="宽松">宽松</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>高级专项（多选）</label>
+              <div class="chips" id="addons"></div>
+            </div>
+            
+            <div class="form-group">
+              <label>科学假设 <span class="hint" style="display:inline;margin-left:8px;">输入您的科学假设，AI将优化并生成高水平期刊配图</span></label>
+              <textarea id="hypothesis" placeholder="例如：T细胞耗竭状态与肿瘤微环境中PD-1/PD-L1通路激活相关，通过单细胞测序可识别耗竭T细胞亚群并发现新的治疗靶点"></textarea>
+            </div>
+            
+            <div class="llm-box">
+              <div class="llm-header">
+                <div class="llm-title">在线增强（可选）</div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <span id="usageCounter" style="font-size:12px;color:var(--text-muted);">今日剩余：10次</span>
+                  <label class="toggle">
+                    <input type="checkbox" id="llmEnabled" />
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-text">启用智能生成</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label>温度</label>
+                  <select id="llmTemp">
+                    <option value="0.2">0.2（稳定）</option>
+                    <option value="0.5">0.5（平衡）</option>
+                    <option value="0.8">0.8（发散）</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>模型版本</label>
+                  <select id="llmModel">
+                    <option value="deepseek-chat">标准版</option>
+                    <option value="deepseek-reasoner">推理版</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="btn-group">
+              <button class="btn btn-primary" id="btnGenerate" type="button">
+                <span>⚡</span> 生成方案
+              </button>
+              <button class="btn" id="btnReset" type="button">重置</button>
+            </div>
+            
+            <div class="alert" id="statusBox"></div>
+          </div>
+        </section>
+        
+        <!-- Output Panel -->
+        <section class="panel">
+          <div class="panel-header">
+            <div class="panel-title">方案输出</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span class="flowchart-counter" id="hypothesisCounter">✨ 假设图今日剩余：3次</span>
+              <div class="hint">点击卡片展开查看详情</div>
+            </div>
+          </div>
+          
+          <div class="panel-body">
+            <div class="cards">
+              <!-- Basic Card -->
+              <article class="card" data-level="basic">
+                <div class="card-header" onclick="toggleCard('basic')">
+                  <div class="card-info">
+                    <div class="card-badge card-badge-basic">基础版</div>
+                    <div class="card-title-group">
+                      <div class="card-title">跑通 + 可解释</div>
+                      <div class="card-desc">适合时间紧、需要快速对齐结论的场景</div>
+                    </div>
+                  </div>
+                  <div class="card-arrow" id="icon-basic">▼</div>
+                </div>
+                <div class="card-body" id="body-basic">
+                  <div class="card-content">
+                    <div class="preview-state" id="preview-basic">
+                      <div class="preview-state-icon">📋</div>
+                      <div class="preview-state-text">点击上方卡片展开方案内容</div>
+                    </div>
+                    <div id="out_basic" style="display:none;"></div>
+                  </div>
+                </div>
+                <div class="card-footer" id="footer-basic">
+                  <button class="btn btn-sm" data-action="copy" data-target="basic">📋 复制</button>
+                  <button class="btn btn-sm" data-action="export" data-target="basic">💾 导出</button>
+                </div>
+              </article>
+              
+              <!-- Advanced Card -->
+              <article class="card" data-level="advanced">
+                <div class="card-header" onclick="toggleCard('advanced')">
+                  <div class="card-info">
+                    <div class="card-badge card-badge-advanced">进阶版</div>
+                    <div class="card-title-group">
+                      <div class="card-title">更稳健 + 更贴题</div>
+                      <div class="card-desc">适合需要可复现、可发表质量图表的场景</div>
+                    </div>
+                  </div>
+                  <div class="card-arrow" id="icon-advanced">▼</div>
+                </div>
+                <div class="card-body" id="body-advanced">
+                  <div class="card-content">
+                    <div class="preview-state" id="preview-advanced">
+                      <div class="preview-state-icon">📊</div>
+                      <div class="preview-state-text">点击上方卡片展开方案内容</div>
+                    </div>
+                    <div id="out_advanced" style="display:none;"></div>
+                  </div>
+                </div>
+                <div class="card-footer" id="footer-advanced">
+                  <button class="btn btn-sm" data-action="copy" data-target="advanced">📋 复制</button>
+                  <button class="btn btn-sm" data-action="export" data-target="advanced">💾 导出</button>
+                </div>
+              </article>
+              
+              <!-- Expert Card -->
+              <article class="card" data-level="expert">
+                <div class="card-header" onclick="toggleCard('expert')">
+                  <div class="card-info">
+                    <div class="card-badge card-badge-expert">专家版</div>
+                    <div class="card-title-group">
+                      <div class="card-title">机制挖掘 + 投稿框架</div>
+                      <div class="card-desc">适合需要机制假设、跨队列多组学深挖的场景</div>
+                    </div>
+                  </div>
+                  <div class="card-arrow" id="icon-expert">▼</div>
+                </div>
+                <div class="card-body" id="body-expert">
+                  <div class="card-content">
+                    <div class="preview-state" id="preview-expert">
+                      <div class="preview-state-icon">🔬</div>
+                      <div class="preview-state-text">点击上方卡片展开方案内容</div>
+                    </div>
+                    <div id="out_expert" style="display:none;"></div>
+                  </div>
+                </div>
+                <div class="card-footer" id="footer-expert">
+                  <button class="btn btn-sm" data-action="copy" data-target="expert">📋 复制</button>
+                  <button class="btn btn-sm" data-action="export" data-target="expert">💾 导出</button>
+                </div>
+              </article>
+              
+              <!-- Hypothesis Image Card -->
+              <article class="card" data-level="hypothesis" style="margin-top:24px;border-color:rgba(251,191,36,.3);">
+                <div class="card-header" onclick="toggleCard('hypothesis')">
+                  <div class="card-info">
+                    <div class="card-badge" style="background:rgba(251,191,36,.15);color:var(--warn);border:1px solid rgba(251,191,36,.3);">科学假设图</div>
+                    <div class="card-title-group">
+                      <div class="card-title">AI优化科学假设可视化</div>
+                      <div class="card-desc">基于输入假设生成高水平期刊配图</div>
+                    </div>
+                  </div>
+                  <div class="card-arrow" id="icon-hypothesis">▼</div>
+                </div>
+                <div class="card-body" id="body-hypothesis">
+                  <div class="card-content">
+                    <div class="preview-state" id="preview-hypothesis">
+                      <div class="preview-state-icon">✨</div>
+                      <div class="preview-state-text">在上方输入科学假设后，点击生成按钮</div>
+                    </div>
+                    <div id="out_hypothesis" style="display:none;">
+                      <div id="hypothesis-optimized-text" style="margin-bottom:16px;padding:16px;background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.2);border-radius:var(--radius-sm);"></div>
+                      <div id="hypothesis-image" style="text-align:center;"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-footer" id="footer-hypothesis">
+                  <button class="btn btn-sm flowchart-btn" id="btnGenerateHypothesis" type="button">✨ 生成假设图</button>
+                </div>
+              </article>
+            </div>
+            
+            <div class="footer-note">
+              <strong>说明：</strong>虚拟基因敲除指在表达矩阵中进行计算机模拟干预，用于生成假设与优先级排序；最终结论建议结合实验验证。
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "sc-plan-mvp:v1";
+      const USAGE_KEY = "sc-plan-mvp:usage:v1";
+      const HYPOTHESIS_USAGE_KEY = "sc-plan-mvp:hypothesis-usage:v1";
+      
+      // 内嵌API配置 - DeepSeek
+      const EMBEDDED_API_KEY = "sk-80367300a3b24f9d80d61f32fd995cbb";
+      const API_BASE_URL = "https://api.deepseek.com";
+      const MAX_DAILY_USAGE = 10;
+      
+      // 内嵌API配置 - 火山引擎图像生成
+      const VOLCES_API_KEY = "9e8d747d-32dd-40c1-9b96-058cefb4dc8f";
+      const VOLCES_API_URL = "https://ark.cn-beijing.volces.com/api/v3/images/generations";
+      const MAX_HYPOTHESIS_DAILY_USAGE = 5;
+
+      const ADDONS = [
+        { id: "integration_external", name: "整合外部数据", blurb: "对标公开队列或参考图谱" },
+        { id: "cell_communication", name: "细胞通讯", blurb: "配体-受体推断与可视化" },
+        { id: "trajectory", name: "轨迹/谱系", blurb: "拟时序与分化路径分析" },
+        { id: "regulon", name: "调控网络", blurb: "TF活性与调控网络分析" },
+        { id: "gene_set_activity", name: "通路评分", blurb: "基因集活性与通路分析" },
+        { id: "spatial", name: "空间转录组", blurb: "空间定位与去卷积" },
+        { id: "multiome", name: "多组学联动", blurb: "RNA+ATAC/蛋白联合分析" },
+        { id: "virtual_ko", name: "虚拟基因敲除", blurb: "UNAGI模型干预模拟" },
+      ];
+
+      const TOOL_STACK = {
+        "10x scRNA": { primary: "R：Seurat + tidyverse/ggplot2", upstream: "Cell Ranger" },
+        "Smart-seq": { primary: "R：Seurat + DESeq2/edgeR", upstream: "STAR + featureCounts" },
+        "scATAC": { primary: "R：ArchR / Signac", upstream: "Cell Ranger ATAC" },
+        "CITE-seq": { primary: "R：Seurat（WNN）", upstream: "Cell Ranger" },
+        "Multiome（RNA+ATAC）": { primary: "R：Seurat + Signac/ArchR", upstream: "Cell Ranger ARC" },
+        "其他": { primary: "R：Seurat（按数据适配）", upstream: "按平台适配" },
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      function setStatus(kind, msg){
+        const box = $("statusBox");
+        box.style.display = "block";
+        box.className = "alert alert-" + kind;
+        box.innerHTML = msg;
+      }
+
+      function clearStatus(){
+        $("statusBox").style.display = "none";
+      }
+
+      function getSelectedAddons(){
+        return ADDONS
+          .filter(a => document.querySelector(`input[data-addon="${a.id}"]`)?.checked)
+          .map(a => a.id);
+      }
+
+      function normalizeText(s){ return (s || "").toString().trim(); }
+
+      function buildContext(){
+        return {
+          goal: normalizeText($("goal").value),
+          species: $("species").value,
+          modality: $("modality").value,
+          design: normalizeText($("design").value),
+          dataStatus: $("dataStatus").value,
+          deliverable: $("deliverable").value,
+          constraint: $("constraint").value,
+          focus: normalizeText($("focus").value),
+          qcBias: $("qcBias").value || "标准",
+          addons: getSelectedAddons(),
+          createdAt: new Date().toISOString(),
+        };
+      }
+
+      function validate(ctx){
+        const missing = [];
+        if(!ctx.goal) missing.push("项目目标");
+        if(!ctx.species) missing.push("物种");
+        if(!ctx.modality) missing.push("数据类型");
+        if(!ctx.design) missing.push("样本设计");
+        if(!ctx.dataStatus) missing.push("数据现状");
+        if(!ctx.deliverable) missing.push("交付形式");
+        if(!ctx.constraint) missing.push("时间预算");
+        return missing;
+      }
+
+      function saveToStorage(ctx){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, ctx }));
+      }
+
+      function loadFromStorage(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if(!raw) return null;
+          const payload = JSON.parse(raw);
+          return payload?.ctx || null;
+        }catch{ return null; }
+      }
+
+      function applyStoredCtx(ctx){
+        $("goal").value = ctx.goal || "";
+        $("species").value = ctx.species || "";
+        $("modality").value = ctx.modality || "";
+        $("design").value = ctx.design || "";
+        $("dataStatus").value = ctx.dataStatus || "";
+        $("deliverable").value = ctx.deliverable || "";
+        $("constraint").value = ctx.constraint || "";
+        $("focus").value = ctx.focus || "";
+        $("qcBias").value = ctx.qcBias || "";
+        for(const a of ADDONS){
+          const el = document.querySelector(`input[data-addon="${a.id}"]`);
+          if(el) el.checked = (ctx.addons || []).includes(a.id);
+        }
+      }
+
+      function estimateEffort(ctx, level){
+        const addonCount = ctx.addons.length;
+        const heavy = ["trajectory","cell_communication","regulon","multiome","spatial","virtual_ko"];
+        const heavyCount = ctx.addons.filter(x => heavy.includes(x)).length;
+
+        let baseDays = level === "basic" ? 3 : level === "advanced" ? 7 : 12;
+
+        if(ctx.modality === "scATAC") baseDays += (level === "basic" ? 2 : 3);
+        if(ctx.modality.includes("Multiome")) baseDays += (level === "basic" ? 2 : 4);
+        if(ctx.modality === "CITE-seq") baseDays += (level === "basic" ? 1 : 2);
+
+        baseDays += addonCount * (level === "basic" ? 0.5 : level === "advanced" ? 0.7 : 0.9);
+        baseDays += heavyCount * (level === "basic" ? 0.6 : level === "advanced" ? 0.9 : 1.2);
+
+        if(ctx.constraint === "紧") baseDays = Math.max(2, Math.round(baseDays * 0.75));
+        if(ctx.constraint === "宽松") baseDays = Math.round(baseDays * 1.15);
+
+        const low = Math.max(2, Math.floor(baseDays * 0.8));
+        const high = Math.max(low + 1, Math.ceil(baseDays * 1.25));
+        return `${low}到${high}个工作日`;
+      }
+
+      function getTooling(ctx){ return TOOL_STACK[ctx.modality] || TOOL_STACK["其他"]; }
+
+      function addonText(addonId, level, ctx){
+        const focus = ctx.focus ? `（关注点：${ctx.focus}）` : "";
+        switch(addonId){
+          case "integration_external":
+            if(level === "basic") return `整合外部数据（轻量版）：对标1-2个公开参考图谱，校验主要细胞类型与marker合理性。交付：对齐图（UMAP/marker对比）和结论段落。`;
+            if(level === "advanced") return `整合外部数据（稳健版）：明确参考数据选择标准，进行标签转移或参考映射。交付：映射质量评估、混淆矩阵/一致性统计、注释证据表。`;
+            return `整合外部数据（跨队列版）：跨队列整合与偏差评估，形成可复用参考框架。交付：跨队列一致性报告、可复现整合脚本与参数说明。`;
+          case "cell_communication":
+            if(level === "basic") return `细胞通讯（快速版）：以主要细胞类型为单位做通讯推断与展示${focus}。交付：总体通讯网络图和关键通路top列表。`;
+            if(level === "advanced") return `细胞通讯（进阶版）：加入条件对比（对照vs处理）与置信度过滤，输出可解释证据链。交付：差异通讯通路/细胞对列表、核心配体-受体对可视化。`;
+            return `细胞通讯（专家版）：在样本/批次层面做稳健性评估，结合通路富集与下游靶基因响应验证。交付：通讯机制假设清单、验证优先级、潜在干预靶点建议。`;
+          case "trajectory":
+            if(level === "basic") return `轨迹/谱系（探索版）：选择候选细胞群，给出拟时序与关键分支marker。交付：轨迹图和分支marker列表。`;
+            if(level === "advanced") return `轨迹/谱系（稳健版）：对不同算法/参数做一致性检查，评估采样偏差与批次影响。交付：轨迹一致性对比、关键转折点基因模块、分支差异统计。`;
+            return `轨迹/谱系（机制版）：结合调控网络/通路活性推断驱动因子，输出可检验的调控假设。交付：驱动TF/通路候选和实验验证建议。`;
+          case "regulon":
+            if(level === "basic") return `调控网络（轻量版）：对关键细胞群做TF活性评分与top TF列表。交付：TF活性热图/UMAP和top regulon列表。`;
+            if(level === "advanced") return `调控网络（稳健版）：结合分组对比与背景校正，输出可解释的TF到靶基因证据。交付：TF-靶基因网络图、差异TF活性统计、证据表。`;
+            return `调控网络（专家版）：与轨迹/通讯/ATAC信号联动，形成驱动因子优先级与因果链假设。交付：驱动TF优先级、关键靶基因模块、追踪验证建议。`;
+          case "gene_set_activity":
+            if(level === "basic") return `通路评分（基础版）：使用标准基因集（MSigDB/自定义）在细胞或群层面评分并可视化。交付：通路活性热图/差异通路列表。`;
+            if(level === "advanced") return `通路评分（对比版）：加入分组/条件对比与伪bulk稳健性检查，减少单细胞噪声影响。交付：差异通路统计、通路-细胞群关联总结。`;
+            return `通路评分（机制版）：将通路活性与轨迹阶段/通讯响应/调控网络候选联动，形成机制叙事。交付：机制链路图和关键通路验证清单。`;
+          case "spatial":
+            if(level === "basic") return `空间转录组（前置评估版）：确认空间平台与分辨率，输出可做项与限制清单。交付：可行性评估和最小联动方案。`;
+            if(level === "advanced") return `空间转录组（标准联动版）：细胞类型定位、区域差异、去卷积/映射。交付：空间分布图、区域差异表、可复现脚本。`;
+            return `空间转录组（专家联动版）：结合细胞通讯/轨迹/病理区域信息，输出空间机制假设与验证路径。交付：空间机制报告和关键区域/细胞互作候选。`;
+          case "multiome":
+            if(level === "basic") return `多组学联动（轻量版）：建立联合表示（如WNN），输出RNA与ATAC/ADT的一致性图与关键差异。交付：联合UMAP、主要细胞群注释与差异摘要。`;
+            if(level === "advanced") return `多组学联动（稳健版）：峰-基因链接、蛋白/开放性与表达的协同变化，加入条件对比与质量评估。交付：peak-gene证据表、关键位点/通路总结。`;
+            return `多组学联动（专家版）：在调控网络与因果链假设层面整合（ATAC到TF到靶基因到表型）。交付：机制网络图、优先级清单、推荐验证策略。`;
+          case "virtual_ko":
+            if(level === "basic") return `虚拟基因敲除（探索版，UNAGI）：基于UNAGI模型对1-3个候选基因做计算机模拟干预${focus}。输出：干预前后关键状态/通路变化方向（用于假设与优先级排序）。注意：不代表真实因果，需结合实验验证。`;
+            if(level === "advanced") return `虚拟基因敲除（稳健版，UNAGI）：明确干预目标与评价指标，做多强度扰动与敏感性分析${focus}。对照：随机基因/匹配表达量基因负对照。交付：扰动效应报告（含对照/不确定性）。`;
+            return `虚拟基因敲除（专家版，UNAGI）：以UNAGI扰动结果为核心，与调控网络/轨迹/通讯联动，形成基因到网络到状态到表型的可检验机制链${focus}。稳健性：跨样本/跨批次复现、对照扰动、不确定性评估。`;
+          default: return "";
+        }
+      }
+
+      function baseModules(level, ctx){
+        const qc = ctx.qcBias || "标准";
+        const tooling = getTooling(ctx);
+        let modules = [];
+        
+        modules.push(`分析语言：除虚拟基因敲除外，其余分析默认全部基于R语言实现与交付。`);
+        modules.push(`数据整理：元信息表（样本/分组/批次/平台）与文件清单。`);
+        modules.push(`上游处理：${tooling.upstream}（如需从fastq起）或直接导入count矩阵。`);
+        modules.push(`质控（${qc}）：低质量细胞/高线粒体/低基因数过滤；双细胞（按需要）。`);
+        modules.push(`标准流程：归一化 → 高变基因 → 降维（PCA/UMAP）→ 聚类 → marker。`);
+        modules.push(`细胞注释：基于marker加参考数据库/文献证据（给出证据表）。`);
+        modules.push(`差异分析：按细胞群比较条件差异（基础版以伪bulk或群内DE择一）。`);
+        modules.push(`可视化：UMAP/气泡图/热图/差异基因表格。`);
+
+        if(level !== "basic"){
+          modules.push(`批次处理：比较多种整合策略（Harmony/CCA/scVI）并给出选择理由。`);
+          modules.push(`双细胞识别：Scrublet/DoubletFinder（按平台选择）。`);
+          modules.push(`混杂控制：细胞周期、线粒体比例、测序深度等（视情况回归或分层）。`);
+          modules.push(`差异稳健化：伪bulk（按样本聚合）为主，报告效应量/置信区间。`);
+          modules.push(`子群精细化：对关键细胞群二次聚类/精细注释（输出注释证据）。`);
+          modules.push(`可复现：固定软件版本、记录参数、输出可复跑脚本。`);
+        }
+        
+        if(level === "expert"){
+          modules.push(`质量体系：关键结论的多方法/多参数复现一致性检查。`);
+          modules.push(`跨队列泛化：对照公开数据或额外批次做稳定性评估。`);
+          modules.push(`机制假设：从现象到驱动因子到下游通路到可验证实验的闭环叙事。`);
+          modules.push(`投稿图表：统一配色、图注规范、统计标注与可复用绘图脚本。`);
+        }
+        
+        return modules;
+      }
+
+      function dataNeeds(level, ctx){
+        const needs = [
+          "样本信息表（样本ID、分组、批次、来源、处理条件、关键临床/实验变量）",
+          "平台与上游信息（10x/Smart-seq等；是否多次上机；参考基因组版本）",
+        ];
+        if(ctx.dataStatus === "已有fastq"){
+          needs.push("fastq文件与上游输出，以及Cell Ranger/比对参数");
+        }else{
+          needs.push("表达矩阵/对象文件（counts、features、barcodes或Seurat/AnnData）");
+        }
+        if(level !== "basic") needs.push("每个样本的测序深度/细胞数概览");
+        if(ctx.addons.includes("spatial")) needs.push("空间数据平台信息（Visium/HD等）加spot/cell坐标与组织图片");
+        if(ctx.addons.includes("multiome")) needs.push("多组学对应关系与上游输出（peak矩阵/fragment文件/ADT矩阵等）");
+        return needs;
+      }
+
+      function riskNotes(level, ctx){
+        const notes = [
+          "批次效应：不同上机/试剂/操作者可能导致聚类按批次分离，需要整合与评估",
+          "样本量：每组样本数过少时，群内DE容易不稳健，建议以样本为单位的伪bulk/混合模型",
+          "注释偏差：仅靠marker可能误判，需结合参考图谱/文献与一致性证据",
+        ];
+        if(ctx.modality === "scATAC" || ctx.modality.includes("Multiome")){
+          notes.push("ATAC噪声与稀疏度更高：峰调用/质量阈值对结论影响大，需谨慎设参");
+        }
+        if(ctx.addons.includes("virtual_ko")){
+          notes.push(level === "basic" ? "in silico KO仅用于生成假设，不能替代扰动实验或因果证据" : "in silico KO需负对照与不确定性评估；对网络推断与数据稀疏敏感");
+        }
+        if(level === "expert") notes.push("多模块联动存在多重假设检验与解释链过长风险，需层层给证据与置信度");
+        return notes;
+      }
+
+      function deliverables(level, ctx){
+        const base = [
+          "图表：QC概览、UMAP/TSNE、各群marker、主要差异结果",
+          "表格：细胞注释证据表、差异基因表（含阈值与统计信息）",
+          `交付形式：${ctx.deliverable}`,
+        ];
+        if(level !== "basic"){
+          base.push("可复现材料：脚本/Notebook、关键参数清单、环境说明");
+          base.push("对象文件：Seurat/AnnData（含注释/降维/聚类结果）");
+        }
+        if(level === "expert") base.push("机制假设清单：候选驱动因子/通路/细胞互作加验证优先级");
+        return base;
+      }
+
+      function suggestUpsells(level, ctx){
+        const upsells = [];
+        if(level === "basic"){
+          upsells.push("批次整合方案对比与选择理由（提升稳健性）");
+          upsells.push("伪bulk差异分析（以样本为统计单位）");
+        }
+        if(!ctx.addons.includes("integration_external")) upsells.push("参考图谱映射/标签转移（提升注释可信度）");
+        if(!ctx.addons.includes("virtual_ko")) upsells.push("虚拟基因敲除：用于靶点与机制假设优先级排序");
+        if(ctx.modality === "10x scRNA" && level !== "basic") upsells.push("关键细胞群二次深挖（子群、状态评分、关键驱动因子）");
+        if(ctx.constraint === "紧") upsells.push("快速交付版：提前输出关键图表草稿加结论要点");
+        if(level === "expert"){
+          upsells.push("跨队列复现与对标（公开数据加自有数据）");
+          upsells.push("可投稿图表全套（统一风格加图注加统计标注）");
+        }
+        return upsells.slice(0, 6);
+      }
+
+      function buildPlan(level, ctx){
+        const tooling = getTooling(ctx);
+        const addonBlocks = ctx.addons.map(a => addonText(a, level, ctx)).filter(Boolean);
+
+        let priorityHint = ctx.constraint === "紧" ? "优先级建议：先保证QC/注释/核心对比结论；专项按必要/可选排序，避免过度堆模块。" :
+                          ctx.constraint === "宽松" ? "优先级建议：在稳健主线基础上，围绕研究问题选择1-3个专项深挖，形成机制闭环。" :
+                          "优先级建议：主线保证稳健；专项选择与研究问题强相关的优先，避免图多但不回答问题。";
+
+        const sections = [];
+        
+        sections.push({
+          title: "方案摘要",
+          content: [
+            `目标：${ctx.goal || "（未填写）"}`,
+            `数据：${ctx.species || "?"}；${ctx.modality || "?"}；${ctx.design || "?"}；${ctx.dataStatus || "?"}`,
+            `工具：${tooling.primary}（上游：${tooling.upstream}）`,
+            priorityHint
+          ]
+        });
+        
+        sections.push({ title: "分析模块", content: baseModules(level, ctx) });
+        if(addonBlocks.length > 0) sections.push({ title: "高级专项", content: addonBlocks });
+        sections.push({ title: "交付物", content: deliverables(level, ctx) });
+        sections.push({ title: "数据需求", content: dataNeeds(level, ctx) });
+        sections.push({ title: "风险提示", content: riskNotes(level, ctx) });
+        sections.push({ title: "工期估算", content: [`预计工期：${estimateEffort(ctx, level)}`, "说明：返工轮次会显著影响实际周期"] });
+        sections.push({ title: "可选增项", content: suggestUpsells(level, ctx) });
+
+        return { title: level, sections };
+      }
+
+      function renderPlanToHTML(plan){
+        return plan.sections.map(section => `
+          <div class="plan-section">
+            <div class="plan-section-title">${section.title}</div>
+            <ul class="plan-list">
+              ${section.content.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+          </div>
+        `).join('');
+      }
+
+      function renderPlanToText(plan){
+        return plan.sections.map(section => 
+          `${section.title}\n${'='.repeat(section.title.length)}\n${section.content.map(item => `• ${item}`).join('\n')}\n`
+        ).join('\n');
+      }
+
+      function downloadText(filename, text){
+        const blob = new Blob([text], {type: "text/plain;charset=utf-8"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+      }
+
+      async function copyToClipboard(text){
+        try{
+          await navigator.clipboard.writeText(text);
+          setStatus("success", "已复制到剪贴板");
+        }catch{
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          try{
+            document.execCommand("copy");
+            setStatus("success", "已复制到剪贴板");
+          }catch{
+            setStatus("warning", "复制失败，请改用导出功能");
+          }
+          ta.remove();
+        }
+      }
+
+      function renderOutputs(ctx){
+        ["basic", "advanced", "expert"].forEach(level => {
+          const plan = buildPlan(level, ctx);
+          $(`out_${level}`).innerHTML = renderPlanToHTML(plan);
+          $(`out_${level}`).dataset.textContent = renderPlanToText(plan);
+        });
+        
+        ["basic", "advanced", "expert"].forEach(level => {
+          $(`preview-${level}`).style.display = "none";
+          $(`out_${level}`).style.display = "block";
+        });
+      }
+
+      function buildLLMPrompt(ctx){
+        const tooling = getTooling(ctx);
+        const addonsNames = ctx.addons.map(id => ADDONS.find(a => a.id === id)?.name).filter(Boolean);
+        return [
+          "你是一名资深单细胞生信分析师，需要为用户项目生成3个不同深度的分析方案：基础/进阶/专家。",
+          "",
+          "【强约束】",
+          "1) 除虚拟基因敲除外，其余所有分析默认都基于R语言。",
+          "2) 虚拟基因敲除必须明确为基于UNAGI模型，强调其用于假设生成与优先级排序，不能替代因果证据。",
+          "3) 输出必须是严格JSON，包含3个字段：basic_text, advanced_text, expert_text。每个字段的值为纯文本（使用自然语言，不要Markdown格式）。",
+          "",
+          "【用户输入】",
+          `项目目标：${ctx.goal}`,
+          `物种：${ctx.species}`,
+          `数据类型：${ctx.modality}`,
+          `样本设计：${ctx.design}`,
+          `数据现状：${ctx.dataStatus}`,
+          `交付形式：${ctx.deliverable}`,
+          `时间预算：${ctx.constraint}`,
+          `关注点：${ctx.focus || "无"}`,
+          `质控偏好：${ctx.qcBias}`,
+          `高级专项：${addonsNames.length ? addonsNames.join("；") : "无"}`,
+          `工具建议：${tooling.primary}（上游：${tooling.upstream}）`,
+          "",
+          "【每档方案包含的小节】",
+          "方案摘要、分析模块、高级专项、交付物、数据需求、风险提示、工期估算、可选增项",
+          "",
+          "【格式要求】",
+          "使用自然语言描述，不要使用Markdown格式。使用段落和序号组织内容。"
+        ].join("\n");
+      }
+
+      // 使用次数管理
+      function getUsageData(){
+        try{
+          const raw = localStorage.getItem(USAGE_KEY);
+          if(!raw) return { date: new Date().toDateString(), count: 0 };
+          const data = JSON.parse(raw);
+          const today = new Date().toDateString();
+          if(data.date !== today) return { date: today, count: 0 };
+          return data;
+        }catch{ return { date: new Date().toDateString(), count: 0 }; }
+      }
+
+      function saveUsageData(data){
+        localStorage.setItem(USAGE_KEY, JSON.stringify(data));
+      }
+
+      function incrementUsage(){
+        const data = getUsageData();
+        data.count++;
+        saveUsageData(data);
+        updateUsageDisplay();
+        return data.count;
+      }
+
+      function updateUsageDisplay(){
+        const data = getUsageData();
+        const remaining = Math.max(0, MAX_DAILY_USAGE - data.count);
+        const counter = $("usageCounter");
+        if(counter){
+          counter.textContent = `今日剩余：${remaining}次`;
+          counter.style.color = remaining <= 3 ? 'var(--warn)' : 'var(--text-muted)';
+        }
+      }
+
+      function checkUsageLimit(){
+        const data = getUsageData();
+        if(data.count >= MAX_DAILY_USAGE){
+          throw new Error(`今日使用次数已达上限（${MAX_DAILY_USAGE}次），请明日再试`);
+        }
+        return true;
+      }
+
+      // 科学假设图使用次数管理
+      function getHypothesisUsageData(){
+        try{
+          const raw = localStorage.getItem(HYPOTHESIS_USAGE_KEY);
+          if(!raw) return { date: new Date().toDateString(), count: 0 };
+          const data = JSON.parse(raw);
+          const today = new Date().toDateString();
+          if(data.date !== today) return { date: today, count: 0 };
+          return data;
+        }catch{ return { date: new Date().toDateString(), count: 0 }; }
+      }
+
+      function saveHypothesisUsageData(data){
+        localStorage.setItem(HYPOTHESIS_USAGE_KEY, JSON.stringify(data));
+      }
+
+      function incrementHypothesisUsage(){
+        const data = getHypothesisUsageData();
+        data.count++;
+        saveHypothesisUsageData(data);
+        updateHypothesisUsageDisplay();
+        return data.count;
+      }
+
+      function updateHypothesisUsageDisplay(){
+        const data = getHypothesisUsageData();
+        const remaining = Math.max(0, MAX_HYPOTHESIS_DAILY_USAGE - data.count);
+        const counter = $("hypothesisCounter");
+        if(counter){
+          counter.textContent = `✨ 假设图今日剩余：${remaining}次`;
+          counter.style.opacity = remaining === 0 ? '0.5' : '1';
+        }
+      }
+
+      function checkHypothesisUsageLimit(){
+        const data = getHypothesisUsageData();
+        if(data.count >= MAX_HYPOTHESIS_DAILY_USAGE){
+          throw new Error(`科学假设图生成次数已达今日上限（${MAX_HYPOTHESIS_DAILY_USAGE}次），请明日再试`);
+        }
+        return true;
+      }
+
+      // 优化科学假设
+      async function optimizeHypothesis(rawHypothesis){
+        const prompt = `你是一位资深的单细胞生物学和生物信息学专家，擅长将初步的科学假设优化为高水平科研期刊（如Cell、Nature、Science）标准的科学假设。
+
+请对以下科学假设进行优化和细化：
+
+【原始假设】
+${rawHypothesis}
+
+【优化要求】
+1. 明确研究背景和问题
+2. 提出具体的科学假设（可验证的）
+3. 阐述预期的分子机制或细胞机制
+4. 说明拟采用的技术方法（单细胞测序相关）
+5. 预期结果和意义
+6. 使用专业、学术化的语言
+
+请输出优化后的科学假设，要求：
+- 逻辑清晰，层次分明
+- 语言精炼但专业
+- 适合用于科研论文或项目申请
+- 字数控制在300-500字`;
+
+        const resp = await fetch(API_BASE_URL + "/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + EMBEDDED_API_KEY
+          },
+          body: JSON.stringify({
+            model: "deepseek-chat",
+            temperature: 0.7,
+            messages: [
+              { role: "system", content: "你是一位资深的单细胞生物学专家，擅长优化科学假设。" },
+              { role: "user", content: prompt }
+            ]
+          })
+        });
+
+        if(!resp.ok) throw new Error(`优化失败（HTTP ${resp.status}）`);
+
+        const data = await resp.json();
+        return data?.choices?.[0]?.message?.content || rawHypothesis;
+      }
+
+      // 生成科学假设图
+      async function generateHypothesisImage(optimizedHypothesis){
+        // 检查使用次数限制
+        checkHypothesisUsageLimit();
+
+        const prompt = `Create an elegant and sophisticated scientific illustration for top-tier journals (Nature, Cell, Science). Striking visual impact with professional polish - one step above standard but not excessive.
+
+【Scientific Hypothesis Content】
+${optimizedHypothesis.slice(0, 2500)}
+
+【Visual Style - Elegant Sophistication】
+
+1. **ARTISTIC STYLE - Refined Elegance:**
+   - High-quality 3D rendering with artistic flair
+   - Blend of scientific precision and visual artistry
+   - Reference: Premium Nature/Cell cover illustrations, XVIVO style
+   - Gallery-worthy presentation with tasteful drama
+
+2. **COLOR PALETTE - Rich and Harmonious:**
+   - Deep sapphire blues (#0d2137, #1a365d, #2c5282) for depth and elegance
+   - Vibrant teals and cyans (#38b2ac, #4fd1c5) for cellular energy
+   - Warm gold accents (#ecc94b, #d69e2e) for key highlights
+   - Soft gradient backgrounds (deep blue to teal)
+   - Strategic use of complementary colors for visual interest
+
+3. **CENTRAL VISUAL - Striking Focal Point:**
+   - Beautifully rendered 3D cell with elegant semi-transparent membrane
+   - Intricate internal organelles visible (nucleus, mitochondria, ER)
+   - DNA helix subtly glowing within nucleus
+   - Cell surface receptors and structures clearly defined
+   - Dynamic pose or angle for visual interest
+
+4. **SURROUNDING ELEMENTS - Rich Context:**
+   - 3-4 supporting cells in various states (healthy, activated, interacting)
+   - Elegant DNA double helix spiraling through scene
+   - RNA strands and key protein structures
+   - Signaling molecules as soft glowing particles
+   - Microenvironment with blood vessels and matrix fibers
+   - Small immune cells or neighboring cell types
+
+5. **DATA VISUALIZATION - Artistic yet Clear:**
+   - Floating UMAP/t-SNE visualization as holographic element
+   - Elegant trajectory arrows showing cell fate
+   - Subtle heatmap gradients on cell surfaces
+   - Pathway diagram integrated as background element
+   - All data viz beautiful AND informative
+
+6. **COMPOSITION - Dynamic yet Balanced:**
+   - Strong focal point with supporting visual hierarchy
+   - Flowing composition with natural eye movement
+   - Layered depth (foreground cells, midground molecules, background environment)
+   - Soft depth of field for cinematic feel
+   - Diagonal or curved flow lines adding energy
+
+7. **LIGHTING - Dramatic but Refined:**
+   - Soft volumetric lighting with gentle rays
+   - Bioluminescent glows from cells and key molecules
+   - Rim lighting to define cell boundaries
+   - Warm and cool light sources creating contrast
+   - Subsurface scattering for realistic tissue translucency
+
+8. **ATMOSPHERIC EFFECTS - Tasteful Enhancement:**
+   - Soft floating particles (molecules, ions) with gentle blur
+   - Subtle atmospheric haze for depth perception
+   - Soft lens effects (minimal, not distracting)
+   - Energy glows around active signaling pathways
+   - Elegant bokeh in background elements
+
+9. **TEXT ELEMENTS - Elegant Typography:**
+   - Title "HYPOTHESIS" in elegant modern serif or sans-serif font
+   - Subtitle: 4-6 word summary of the hypothesis concept
+   - Text with subtle glow or shadow for depth
+   - Professional kerning and spacing
+   - Gold or white text with soft effects
+
+10. **TECHNICAL EXCELLENCE:**
+    - 4K-8K resolution for maximum detail
+    - Photorealistic materials and textures
+    - Rich color depth and smooth gradients
+    - Print-ready for large format
+    - Suitable for journal cover or premium presentation
+
+11. **INSPIRATION:**
+    - XVIVO animation aesthetic (elegant biological visualization)
+    - Nature Methods cover art sophistication
+    - High-end medical illustration quality
+    - Scientific American infographic clarity with artistic flair
+
+Create an illustration that is both scientifically rigorous and visually captivating - elegant, sophisticated, and worthy of a premium journal cover.`;
+
+        const resp = await fetch(VOLCES_API_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + VOLCES_API_KEY
+          },
+          body: JSON.stringify({
+            model: "doubao-seedream-5-0-260128",
+            prompt: prompt,
+            response_format: "url",
+            size: "2K",
+            stream: false,
+            watermark: false
+          })
+        });
+
+        if(!resp.ok){
+          const errorData = await resp.json().catch(() => ({}));
+          throw new Error(errorData.error?.message || `请求失败（HTTP ${resp.status}）`);
+        }
+
+        const data = await resp.json();
+        const imageUrl = data?.data?.[0]?.url || data?.url || data?.image_url;
+        if(!imageUrl){
+          console.error("API返回数据:", data);
+          throw new Error("未能获取图片URL");
+        }
+
+        // 成功后增加使用次数
+        incrementHypothesisUsage();
+
+        return imageUrl;
+      }
+
+      async function generateViaLLM(ctx){
+        if(!$("llmEnabled")?.checked) return null;
+
+        // 检查使用次数限制
+        checkUsageLimit();
+
+        const resp = await fetch(API_BASE_URL + "/chat/completions", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json", 
+            "Authorization": "Bearer " + EMBEDDED_API_KEY 
+          },
+          body: JSON.stringify({
+            model: $("llmModel").value,
+            temperature: Number($("llmTemp").value),
+            messages: [
+              { role: "system", content: "你输出严格JSON，不要输出除JSON以外的任何字符。" },
+              { role: "user", content: buildLLMPrompt(ctx) }
+            ]
+          }),
+        });
+
+        if(!resp.ok) throw new Error(`请求失败（HTTP ${resp.status}）`);
+
+        const data = await resp.json();
+        const content = data?.choices?.[0]?.message?.content ?? "";
+        if(!content) throw new Error("返回为空");
+
+        let parsed;
+        try{
+          // 首先尝试直接解析
+          parsed = JSON.parse(content);
+        }catch{
+          try{
+            // 尝试提取 Markdown 代码块中的 JSON
+            const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if(codeBlockMatch){
+              parsed = JSON.parse(codeBlockMatch[1].trim());
+            }else{
+              // 尝试提取花括号包裹的内容
+              const braceMatch = content.match(/\{[\s\S]*\}/);
+              if(braceMatch){
+                parsed = JSON.parse(braceMatch[0]);
+              }else{
+                throw new Error("无法解析模型输出");
+              }
+            }
+          }catch(e){
+            console.error("解析错误，原始内容:", content);
+            throw new Error("无法解析模型输出，请检查模型返回格式");
+          }
+        }
+
+        const { basic_text, advanced_text, expert_text } = parsed;
+        if(!basic_text || !advanced_text || !expert_text){
+          console.error("返回数据不完整:", parsed);
+          throw new Error("返回数据不完整，缺少必要字段");
+        }
+        
+        // 成功后增加使用次数
+        incrementUsage();
+        
+        return { basic: basic_text, advanced: advanced_text, expert: expert_text };
+      }
+
+      function initAddonsUI(){
+        const root = $("addons");
+        root.innerHTML = ADDONS.map(a => `
+          <label class="chip">
+            <input type="checkbox" data-addon="${a.id}" />
+            <div class="chip-text">
+              <div class="chip-title">${a.name}</div>
+              <div class="chip-desc">${a.blurb}</div>
+            </div>
+          </label>
+        `).join('');
+      }
+
+      function toggleCard(level){
+        const body = $(`body-${level}`);
+        const footer = $(`footer-${level}`);
+        const icon = $(`icon-${level}`);
+        const isExpanded = body.classList.contains("expanded");
+        
+        if(isExpanded){
+          body.classList.remove("expanded");
+          footer.classList.remove("expanded");
+          icon.classList.remove("expanded");
+        }else{
+          body.classList.add("expanded");
+          footer.classList.add("expanded");
+          icon.classList.add("expanded");
+        }
+      }
+
+      function wireEvents(){
+        $("btnGenerate").addEventListener("click", async () => {
+          clearStatus();
+          const ctx = buildContext();
+          const missing = validate(ctx);
+          if(missing.length){
+            setStatus("warning", `请补全必填项：${missing.join("、")}`);
+            return;
+          }
+          saveToStorage(ctx);
+
+          const btn = $("btnGenerate");
+          btn.disabled = true;
+          btn.innerHTML = '<span class="loading">生成中</span>';
+
+          ["basic", "advanced", "expert"].forEach(level => {
+            $(`preview-${level}`).innerHTML = '<div class="preview-state-icon">⏳</div><div class="preview-state-text">正在生成方案...</div>';
+            $(`preview-${level}`).style.display = "block";
+            $(`out_${level}`).style.display = "none";
+          });
+
+          try{
+            const llmResult = await generateViaLLM(ctx);
+            if(llmResult){
+              ["basic", "advanced", "expert"].forEach((level, i) => {
+                const text = [llmResult.basic, llmResult.advanced, llmResult.expert][i];
+                $(`out_${level}`).innerHTML = `<pre class="plan-text">${text}</pre>`;
+                $(`out_${level}`).dataset.textContent = text;
+              });
+              ["basic", "advanced", "expert"].forEach(level => {
+                $(`preview-${level}`).style.display = "none";
+                $(`out_${level}`).style.display = "block";
+              });
+              setStatus("success", "已通过AI模型生成三档方案，点击卡片查看详情");
+            }else{
+              renderOutputs(ctx);
+              setStatus("success", "已生成三档方案，点击卡片查看详情");
+            }
+          }catch(err){
+            renderOutputs(ctx);
+            setStatus("warning", `在线生成失败，已使用离线模板：${err.message}`);
+          }finally{
+            btn.disabled = false;
+            btn.innerHTML = '<span>⚡</span> 生成方案';
+          }
+        });
+
+        $("btnReset").addEventListener("click", () => {
+          clearStatus();
+          ["goal", "species", "modality", "design", "dataStatus", "deliverable", "constraint", "focus", "qcBias"].forEach(id => $(id).value = "");
+          ADDONS.forEach(a => {
+            const el = document.querySelector(`input[data-addon="${a.id}"]`);
+            if(el) el.checked = false;
+          });
+          ["basic", "advanced", "expert"].forEach(level => {
+            $(`preview-${level}`).innerHTML = '<div class="preview-state-icon">📋</div><div class="preview-state-text">点击上方卡片展开方案内容</div>';
+            $(`preview-${level}`).style.display = "block";
+            $(`out_${level}`).style.display = "none";
+            $(`out_${level}`).innerHTML = "";
+            $(`body-${level}`).classList.remove("expanded");
+            $(`footer-${level}`).classList.remove("expanded");
+            $(`icon-${level}`).classList.remove("expanded");
+          });
+        });
+
+        $("btnFillExample").addEventListener("click", () => {
+          clearStatus();
+          applyStoredCtx({
+            goal: "比较对照 vs 处理组肿瘤微环境中T细胞耗竭相关状态差异，并寻找关键调控因子与潜在干预靶点。",
+            species: "人",
+            modality: "10x scRNA",
+            design: "对照 n=3，处理 n=3；两批次测序",
+            dataStatus: "已有fastq",
+            deliverable: "报告+代码+对象文件",
+            constraint: "中",
+            focus: "T细胞, NK细胞; PDCD1, TOX, CXCL13",
+            qcBias: "标准",
+            addons: ["integration_external","cell_communication","regulon","virtual_ko"],
+          });
+          setStatus("success", "已填充示例数据");
+        });
+
+        // 科学假设图生成按钮事件
+        $("btnGenerateHypothesis").addEventListener("click", async () => {
+          clearStatus();
+          
+          const hypothesisInput = $("hypothesis").value.trim();
+          if(!hypothesisInput){
+            setStatus("warning", "请输入科学假设");
+            return;
+          }
+          
+          const btn = $("btnGenerateHypothesis");
+          const originalBtnText = btn.innerHTML;
+          btn.disabled = true;
+          btn.innerHTML = '<span class="loading"></span>优化中...';
+          
+          // 展开假设图卡片
+          $("body-hypothesis").classList.add("expanded");
+          $("icon-hypothesis").classList.add("expanded");
+          $("preview-hypothesis").style.display = "none";
+          $("out_hypothesis").style.display = "block";
+          
+          const optimizedTextDiv = $("hypothesis-optimized-text");
+          const imageDiv = $("hypothesis-image");
+          
+          optimizedTextDiv.innerHTML = '<div style="color:var(--text-secondary);">正在优化科学假设...</div>';
+          imageDiv.innerHTML = '';
+          
+          try{
+            // 第一步：优化科学假设
+            const optimizedHypothesis = await optimizeHypothesis(hypothesisInput);
+            
+            optimizedTextDiv.innerHTML = `
+              <div style="font-weight:600;color:var(--warn);margin-bottom:8px;">✨ AI优化后的科学假设</div>
+              <div style="line-height:1.8;color:var(--text);">${optimizedHypothesis.replace(/\n/g, '<br>')}</div>
+            `;
+            
+            btn.innerHTML = '<span class="loading"></span>绘制中...';
+            imageDiv.innerHTML = '<div style="padding:40px;color:var(--text-secondary);">正在生成高水平期刊配图...</div>';
+            
+            // 第二步：生成假设图
+            const imageUrl = await generateHypothesisImage(optimizedHypothesis);
+            
+            imageDiv.innerHTML = `
+              <img src="${imageUrl}" alt="科学假设图" style="max-width:100%;border-radius:var(--radius-sm);box-shadow:0 10px 40px rgba(0,0,0,.5);" />
+              <div style="margin-top:16px;">
+                <a href="${imageUrl}" target="_blank" download class="btn btn-sm">💾 下载高清图片</a>
+              </div>
+            `;
+            
+            setStatus("success", "科学假设图生成成功");
+          }catch(err){
+            imageDiv.innerHTML = `
+              <div style="color:var(--danger);padding:20px;">
+                <div>❌ 生成失败</div>
+                <div style="font-size:13px;margin-top:8px;">${err.message}</div>
+              </div>
+            `;
+            setStatus("warning", `生成失败：${err.message}`);
+          }finally{
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+          }
+        });
+
+        document.body.addEventListener("click", async (e) => {
+          const btn = e.target.closest("button[data-action]");
+          if(!btn) return;
+          clearStatus();
+          const action = btn.getAttribute("data-action");
+          const target = btn.getAttribute("data-target");
+          
+          const outEl = $("out_" + target);
+          const out = outEl?.dataset.textContent || outEl?.textContent || "";
+          
+          if(!out || out.includes("点击上方") || out.includes("正在生成")){
+            setStatus("warning", "请先生成方案");
+            return;
+          }
+          
+          if(action === "copy"){
+            await copyToClipboard(out);
+          }else if(action === "export"){
+            downloadText(`方案_${target}_${new Date().toISOString().slice(0,10)}.txt`, out);
+            setStatus("success", "已导出文件");
+          }
+        });
+      }
+
+      function boot(){
+        initAddonsUI();
+        wireEvents();
+        updateUsageDisplay();
+        updateHypothesisUsageDisplay();
+        const stored = loadFromStorage();
+        if(stored){
+          applyStoredCtx(stored);
+          setStatus("success", "已恢复上次输入");
+        }
+      }
+
+      boot();
+    </script>
+  </body>
+</html>
