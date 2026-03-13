@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!doctype html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
@@ -993,14 +993,11 @@
             <div class="llm-box">
               <div class="llm-header">
                 <div class="llm-title">在线增强（可选）</div>
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <span id="usageCounter" style="font-size:12px;color:var(--text-muted);">今日剩余：10次</span>
-                  <label class="toggle">
-                    <input type="checkbox" id="llmEnabled" />
-                    <span class="toggle-slider"></span>
-                    <span class="toggle-text">启用智能生成</span>
-                  </label>
-                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="llmEnabled" />
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">启用智能生成</span>
+                </label>
               </div>
               
               <div class="form-row">
@@ -1037,10 +1034,7 @@
         <section class="panel">
           <div class="panel-header">
             <div class="panel-title">方案输出</div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <span class="flowchart-counter" id="hypothesisCounter">✨ 假设图今日剩余：3次</span>
-              <div class="hint">点击卡片展开查看详情</div>
-            </div>
+            <div class="hint">点击卡片展开查看详情</div>
           </div>
           
           <div class="panel-body">
@@ -1582,24 +1576,14 @@
         const data = getUsageData();
         data.count++;
         saveUsageData(data);
-        updateUsageDisplay();
         return data.count;
-      }
-
-      function updateUsageDisplay(){
-        const data = getUsageData();
-        const remaining = Math.max(0, MAX_DAILY_USAGE - data.count);
-        const counter = $("usageCounter");
-        if(counter){
-          counter.textContent = `今日剩余：${remaining}次`;
-          counter.style.color = remaining <= 3 ? 'var(--warn)' : 'var(--text-muted)';
-        }
       }
 
       function checkUsageLimit(){
         const data = getUsageData();
         if(data.count >= MAX_DAILY_USAGE){
-          throw new Error(`今日使用次数已达上限（${MAX_DAILY_USAGE}次），请明日再试`);
+          alert("服务器繁忙，请24点后重试");
+          throw new Error("服务器繁忙，请24点后重试");
         }
         return true;
       }
@@ -1624,24 +1608,14 @@
         const data = getHypothesisUsageData();
         data.count++;
         saveHypothesisUsageData(data);
-        updateHypothesisUsageDisplay();
         return data.count;
-      }
-
-      function updateHypothesisUsageDisplay(){
-        const data = getHypothesisUsageData();
-        const remaining = Math.max(0, MAX_HYPOTHESIS_DAILY_USAGE - data.count);
-        const counter = $("hypothesisCounter");
-        if(counter){
-          counter.textContent = `✨ 假设图今日剩余：${remaining}次`;
-          counter.style.opacity = remaining === 0 ? '0.5' : '1';
-        }
       }
 
       function checkHypothesisUsageLimit(){
         const data = getHypothesisUsageData();
         if(data.count >= MAX_HYPOTHESIS_DAILY_USAGE){
-          throw new Error(`科学假设图生成次数已达今日上限（${MAX_HYPOTHESIS_DAILY_USAGE}次），请明日再试`);
+          alert("服务器繁忙，请24点后重试");
+          throw new Error("服务器繁忙，请24点后重试");
         }
         return true;
       }
@@ -2083,8 +2057,6 @@ Create an illustration that is both scientifically rigorous and visually captiva
       function boot(){
         initAddonsUI();
         wireEvents();
-        updateUsageDisplay();
-        updateHypothesisUsageDisplay();
         const stored = loadFromStorage();
         if(stored){
           applyStoredCtx(stored);
